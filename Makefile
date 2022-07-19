@@ -2,13 +2,13 @@ update:
 	@pip install --upgrade pip
 
 install:
-	@pip install -r services/web/requirements.txt
+	@pip install -r requirements.txt
 
 install-dev:
 	@pip install -r requirements-dev.txt
 
 run:
-	@cd services/web/ && gunicorn -b 0.0.0.0:5000 manage:app
+	@gunicorn -b 0.0.0.0:5000 manage:app
 
 test:
 	@python -m pytest
@@ -32,10 +32,10 @@ stop-db-containers:
 	@sudo docker-compose -f services/database/database-compose.yml down -v
 
 create-db:
-	@python services/web/manage.py create_db
+	@python manage.py create_db
 
 seed-db:
-	@python services/web/manage.py seed_db
+	@python manage.py seed_db
 
 test-local:
 	@curl localhost:5000/
