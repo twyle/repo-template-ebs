@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Provide commands for starting the application, creating the database and seeding the database."""
-from api import create_app, db
-from api.blueprints.default.models import User
 from dotenv import load_dotenv
 from flask.cli import FlaskGroup
+
+from api import create_app, db
+from api.blueprints.default.models import User
 
 load_dotenv()
 
