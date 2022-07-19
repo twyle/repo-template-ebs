@@ -142,22 +142,19 @@ repo-template/
 * **repo-template/services/database** </br>
   *Holds the database compose file and the database environment variables.*
 
-* **repo-template/services/web** </br>
-  *Holds the web application.*
-
-* **repo-template/services/web/api** </br>
+* **repo-template/api** </br>
   *Holds the api code*
 
-* **repo-template/services/web/api/config** </br>
+* **repo-template/api/config** </br>
   *Holds the application configuration.*
 
 * **repo-template/services/web/api/blueprints** </br>
   *Holds the flask blueprints.*
 
-* **repo-template/services/web/api/blueprints/default** </br>
+* **repo-template/api/blueprints/default** </br>
   *Holds the default blueprint.*
 
-* **repo-template/services/web/tests** </br>
+* **repo-template/tests** </br>
   *Holds the api tests.*
 
 ## Local Setup
@@ -380,94 +377,67 @@ The deployemt process for this application can be divided into two groups:
 
 The initial deployment describes the first dployment to the AWS EC2 instance. The process involves the following steps:
 
- 1. **Setting up an AWS EC2 instance**
+ 1. **Setting up an EBS python environment**
 
-    This involves the following steps:
+    Create a python environment on AWS Elastic Beanstalk with the default application code.
 
-      1. Provide an AWS EC2 instance, with latest Ubuntu version and ssh into then instance
-      2. Update and upgrade the packages
-      3. Install the python package manager (python3-pip)
-      4. Install the virtual environment manager (python3-venv)
-      5. Install the PostgreSQL database
-      6. Setup the database, to disable peer authentication, to allow access from anywhere. Also set up the postgres user, with a password and create the development database.
-      7. Install nginx, enable it and start it.
-      8. Create a new user, and give them admin access.
-      9. Create an elastic IP for the EC2 instance.
+ 2. **Setting up the PostgreSQL Database**
 
- 2. **Cloning the project**
+      In the configuration section of your created python environmnet, create a PostgresQL database. Make sure to note the database details including the endpoint (hostname), the db name, the port, the username and password.
 
-      Clone the development branch of the project into the server. Make sure that you are logged in as the created user.
+ 3. **Update the environmen variables**
 
- 3. **Setting up the application**
-
-      This involves the following steps:
-
-      1. Navigate into the cloned application folder
-      2. Create a python3 virtual environment
-      3. Update the package manager
-      4. Install the runtime dependancies
-      5. Create the project secrets
-
- 4. **Creating a service**
-
-      Create a new service that automatically start the application when the server is booted. Enable the service and start it.
-
-      Here is the service template:
+      In the config section, update the environmnet variablse that the application uses. These include:
 
       ```sh
-        [Unit]
-        Description=Gunicorn instance to serve the api
-        After=network.target
+      FLASK_ENV=development
 
-        [Service]
-        User=lyle
-        Group=lyle
-        WorkingDirectory=/home/lyle/repo-template/services/web
-        Environment="PATH=/home/lyle/repo-template/services/web/venv/bin"
-        EnvironmentFile=/home/lyle/.env
-        ExecStart=/home/lyle/repo-template/services/web/venv/bin/gunicorn --workers 4 --bind 0.0.0.0:5000 manage:app
+      SECRET_KEY=supersecretkey
 
-        [Install]
-        WantedBy=multi-user.target
+      JWT_ACCESS_TOKEN_EXPIRES=3
+      JWT_REFRESH_TOKEN_EXPIRES=30
+
+      POSTGRES_HOST=aaq9zqczcrejfq.xxxxxxxx.us-east-1.rds.amazonaws.com
+      POSTGRES_DB=<db-name>
+      POSTGRES_PORT=5432
+      POSTGRES_USER=<user-you-created>
+      POSTGRES_PASSWORD=<pasword-you-provided>
+
+      MAIL_HOST=email-smtp.us-east-1.amazonaws.com
+      MAIL_PORT=465
+      MAIL_USERNAME=<YOUR-USER_NAME>
+      MAIL_PASSWORD=<YOUR-PASSWORD>
       ```
+
+ 4. **Creating a CodeDeploy Pipeline**
+
+      Create a CodeDeploy Pipeline, with only a source and deploy stages. Use GitHub repo as your source and your created app as your deployent target. Once the pipeline is done running, you should be able to access your application.
 
  5. **Setting up the application domain**
 
       Purchase a domain name then use Route53 to create a hosted zone.
 
- 6. **Setting up the application server with the domain**
+ 6. **Set up a Load balancer for your application**
 
-      Update the nginx config to route traffic form port 80 to port 5000 for the gunicorn server. Here is a sample config:
+      In your application configurations, set up a load balancer. Change the capicty to load balanced, this will lead to the creation of a load balancer for your application.
 
-      ```sh
-          server {
-                  listen 80 default_server;
-                  listen [::]:80 default_server;
+ 7. **Creating an SSL certificate for your domain**
 
-                  server_name _; # replace with specific domain name like sanjeev.com
+      Use AWS ACM to request a new SSL certificate.
 
-                  location / {
-                          proxy_pass http://localhost:5000;
-                          proxy_http_version 1.1;
-                          proxy_set_header X-Real-IP $remote_addr;
-                          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                          proxy_set_header Upgrade $http_upgrade;
-                          proxy_set_header Connection 'upgrade';
-                          proxy_set_header Host $http_host;
-                          proxy_set_header X-NginX-Proxy true;
-                          proxy_redirect off;
-                  }
+  8. **Creating an CNAME Record in Route53**
 
-          }
-      ```
+      Create a CNAME record in Route53 to work with the SSL certificate.
 
-      Use certbot to generate an SSL certficate for your domain.
+  9. **Creating an A record that points to your EBS app.**
 
- 7. **Launching the application**
+      Create an A record that points to your EBS application.
 
-      Restart the created service.
+  10. **Configure HTTP to HTTPS redirection for your application.**
 
-8. **Setting up Logging**
+      Modify the load balancer configuration and add a listener for HTTPS traffic on port 443..
+
+  11. **Setting up Logging**
 
       This involves creating a FirehoseDeliveryStream as well as AWS OpenSearch.
 
@@ -475,117 +445,14 @@ The initial deployment describes the first dployment to the AWS EC2 instance. Th
 
       ![](resources/videos/header.gif)
 
-The incremental deployment describes the process of deploying new changes to the already deployed application. It involves the following steps:
-
- 1. Tunelling into the deployment server
- 2. Pulling the latest changes
- 3. Running database migrations
- 4. Restarting the application
-
-This is handled using GitHub Actions:
-
-```sh
-DeployDev:
-    name: Deploy to Dev
-    # if: github.event_name == 'pull_request'
-    needs: [Test-Local]
-    runs-on: ubuntu-latest
-    environment:
-      name: Development
-
-    steps:
-
-      - name: Deploy
-        run: echo I am deploying the api to AWS
-
-      - name: Deploy in EC2
-        env:
-          PRIVATE_KEY: ${{ secrets.AWS_PRIVATE_KEY  }}
-          HOST_NAME : ${{ secrets.HOST_IP  }}
-          USER_NAME : ${{ secrets.USER_NAME  }}
-          USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-          APP_DIR: ${{secrets.APP_DIR}}
-          SERVICE_NAME: ${{secrets.SERVICE_NAME}}
-
-        run: |
-          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-          ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOST_NAME} "
-            cd ${APP_DIR} &&
-            git pull &&
-            echo ${USER_PASSWORD} | sudo -S systemctl restart ${SERVICE_NAME} "
-```
+The incremental deployment describes the process of deploying new changes to the already deployed application. This is handled with the CodeDeploy Pipeline ad happens automatically evry time code is pushed into the development branch.
 
 ## Releases
-
-## v0.3.0 (2022-07-12)
-
-### Fix
-
-- checking for large file uploads.
-- provides the jwt secrets.
-- loads the env vars in config.
-- loads the env vars before app creation.
-- updated the config options.
-
-### Feat
-
-- shows using the app.
-
-## v0.2.0 (2022-07-12)
-
-### Fix
-
-- restores the old animation.
-- updates the workflow badges.
-
-### Feat
-
-- adds the app animation.
-- adds the workflow badges.
-
-## v0.1.0 (2022-07-12)
-
-### Feat
-
-- adds the project layout.
-
-## v0.0.1 (2022-07-12)
-
-### Feat
-
-- adds the makefile.
-- creates the deployment instructions.
-- creates the deployment instructions.
-- creates the deployment instructions.
-- creates the deployment instructions.
-- creates the deployment instructions.
-- creates the deployment instructions.
-- creates the deployment instructions.
-- adds the application routes.
-- adds the development workflow.
-- shows how to install the application.
-- shows how to install the application.
-- shows how to develop the project locally.
-- adds the application structure.
-- creates the initial layout.
-- adds the video showing app usage.
-- shows how to use the application.
-- updates the project description.
-- resizes the images.
-- adds the header image.
-- adds the header image.
-- Creates the section headers.
-
-### Fix
-
-- uses gif.
-- using mp4
-- fixes the video tag.
 
 
 ## Contribution
 
-1. Fork it https://github.com/twyle/repo-template/fork
+1. Fork it https://github.com/twyle/repo-template-ebs/fork
 2. Create your feature branch (`git checkout -b feature/fooBar`)
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
