@@ -49,16 +49,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-        if [ -f ./services/web/requirements.txt ]; then pip install -r ./services/web/requirements.txt; fi
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run the flake8 linter
       run: flake8
 
     - name: Run the pylint linter
-      run: pylint --rcfile=.pylintrc ./services/web/api/
-
-    # - name: Run the mypy linter
-    #   run: mypy -p api
+      run: pylint --rcfile=.pylintrc api/
 
     - name: Create the Test Environment variables
       run: |
@@ -66,6 +63,7 @@ jobs:
         echo FLASK_APP=${{secrets.FLASK_APP}} >> .env
         echo FLASK_ENV=${{secrets.FLASK_ENV}} >> .env
         echo SECRET_KEY=${{secrets.SECRET_KEY}} >> .env
+
         echo POSTGRES_HOST=${{secrets.POSTGRES_HOST}} >> .env
         echo POSTGRES_DB=${{secrets.POSTGRES_DB}} >> .env
         echo POSTGRES_PORT=${{secrets.POSTGRES_PORT}} >> .env
@@ -88,16 +86,16 @@ jobs:
 
     - name: Create the test tables
       run: |
-        python ./services/web/manage.py create_db
+        python manage.py create_db
 
     - name: Test with pytest
       run: |
-        if [ -d ./services/web/tests ] || [ -d ./services/web/test ]; then python -m pytest; fi
+        if [ -d tests/ ] || [ -d test/ ]; then python -m pytest; fi
 
     - name: Pytest Coverage
       run: |
-        if [ -d ./services/web/tests ] || [ -d ./services/web/test ]; then coverage run -m pytest; fi
-        if [ -d ./services/web/tests ] || [ -d ./services/web/test ]; then coverage report -m; fi
+        if [ -d tests ] || [ -d test ]; then coverage run -m pytest; fi
+        if [ -d tests ] || [ -d test ]; then coverage report -m; fi
 
     - name: Coverage Report
       run: coverage xml
@@ -107,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
 
     environment:
-      name: Production
+      name: Development
 
     services:
       postgres:
@@ -124,6 +122,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     needs: [Build]
 
     strategy:
@@ -142,15 +141,15 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f ./services/web/requirements-dev.txt ]; then pip install -r ./services/web/requirements-dev.txt; fi
-        if [ -f ./services/web/requirements.txt ]; then pip install -r ./services/web/requirements.txt; fi
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Create the Production Environment variables
+    - name: Create the Development Environment variables
       run: |
         touch .env
         echo FLASK_APP=${{secrets.FLASK_APP}} >> .env
         echo FLASK_ENV=${{secrets.FLASK_ENV}} >> .env
         echo SECRET_KEY=${{secrets.SECRET_KEY}} >> .env
+
         echo POSTGRES_HOST=${{secrets.POSTGRES_HOST}} >> .env
         echo POSTGRES_DB=${{secrets.POSTGRES_DB}} >> .env
         echo POSTGRES_PORT=${{secrets.POSTGRES_PORT}} >> .env
@@ -173,12 +172,12 @@ jobs:
 
     - name: Create the development tables
       run: |
-        python ./services/web/manage.py create_db
+        python manage.py create_db
 
     - name: Test application
       run: |
-        python ./services/web/manage.py seed_db
-        python ./services/web/manage.py run &
+        python manage.py seed_db
+        python manage.py run &
         sleep 10
         curl http://127.0.0.1:5000/
         curl http://127.0.0.1:5000/users
