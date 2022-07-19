@@ -1,13 +1,13 @@
 # A Template For Deploying a flask app to EBS.
 
-> This flask application en enables an admin to register then authorizes them to create new users.
+> This flask application enables an admin to register then authorizes them to create new users.
 
 <p align="center">
-  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template/actions/workflows/feature-development-workflow.yml/badge.svg" />
-  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template/actions/workflows/development-workflow.yml/badge.svg" />
-  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template/actions/workflows/staging-workflow.yml/badge.svg" />
-  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template/actions/workflows/release-workflow.yml/badge.svg" />
-  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template/actions/workflows/production-workflow.yml/badge.svg" />
+  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template-ebs/actions/workflows/feature-development-workflow.yml/badge.svg" />
+  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template-ebs/actions/workflows/development-workflow.yml/badge.svg" />
+  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template-ebs/actions/workflows/staging-workflow.yml/badge.svg" />
+  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template-ebs/actions/workflows/release-workflow.yml/badge.svg" />
+  <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template-ebs/actions/workflows/production-workflow.yml/badge.svg" />
   <img title="Bandit badge" alt="Bandit badge" src="https://img.shields.io/badge/security-bandit-yellow.svg" />
   <img title="Bandit badge" alt="Bandit badge" src="https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336" />
   <img title="Bandit badge" alt="Bandit badge" src="https://img.shields.io/badge/Made%20with- Python-1f425f.svg" />
@@ -51,14 +51,14 @@ Here's a video showing how to use the application:
 ## Features
 
 This application has several features including:
- 1. Deployed to an AWS Instance using a custom domain language.
+ 1. Deployed to an AWS EBS using a custom domain name.
  2. Versioned using Git and Hosted on GitHub.
- 3. Auto-deployed to AWS using GitHub Actions.
- 4. Uses gunicorn as the application server and nginx as the proxy.
+ 3. Auto-deployed to AWS EBS using AWS CodePipeline.
+ 4. Uses USWGI as the application server and nginx as the proxy.
  5. Uses AWS SES to send emails.
  6. Uses AWS Opensearch and Firehose for logging as filebeats.
  7. Uses AWS Secrets manager to manage the application secrets and AWS KMS for key management.
- 8. Uses PostgreSQL for data storage.
+ 8. Uses AWS RDS PostgreSQL for data storage.
  9. Uses JSON Web Tokens to authorize users.
  10. Uses AWS Route53 to route traffic to the application.
  11. Built using flask, flask-mail, flask-jwt
@@ -95,38 +95,30 @@ repo-template/
 └───services/
 │     |
 │     └───database/
-│     |     |
-|     |     └───.env
-|     |     |
-|     |     └───database-compose.yml
-|     |
-|     └───web/
-|           |
-|           └───api/
-|           |    |
-|           |    └───blueprints/
-|           |    |
-|           |    └───config
-|           |
-|           └───tests/
-|           |
+│           |
 |           └───.env
 |           |
-|           └───Dockerfile.dev
-|           |
-|           └───Dockerfile.prod
-|           |
-|           └───manage.py
-|           |
-|           └───requirements.txt
+|           └───database-compose.yml
+└───api/
+│     |
+|     └───blueprints/
+|     |
+|     └───config/
+└───tests/
+|
+└───.env
+|
+└───Dockerfile.dev
+|
+└───manage.py
+|
+└───requirements.txt
 |
 └───.gitignore
 |
 └───.pre-commit-config.yaml
 |
 └───.pylintrc
-|
-└───docker-compose.yml
 |
 └───LICENSE
 |
@@ -175,13 +167,13 @@ Here is how to set up the application locally:
   1. Clone the application repo:</br>
 
       ```sh
-      git clone https://github.com/twyle/repo-template.git
+      git clone https://github.com/twyle/repo-template-ebs.git
       ```
 
   2. Navigate into the cloned repo:
 
       ```sh
-      cd repo-template
+      cd repo-template-ebs
       ```
 
   3. Create a Virtual environment:
@@ -208,7 +200,6 @@ Here is how to set up the application locally:
   6. Create the environment variables:
 
       ```sh
-      cd services/web
       touch .env
       ```
 
@@ -255,6 +246,8 @@ Here is how to set up the application locally:
 
       ```sh
       make start-db-containers
+      make create-db
+      make seed-db
       ```
 
   8. Start the application:
@@ -341,12 +334,11 @@ The development workflow follows the following steps:
 The workflows require a couple of secrets to work:
 
       ```sh
-        FLASK_APP=api/__init__.py
         FLASK_ENV=development
 
         SECRET_KEY=supersecretkey
 
-        POSTGRES_HOST=<YOUR-IP-ADDRESS>
+        POSTGRES_HOST=localhost
         POSTGRES_DB=lyle
         POSTGRES_PORT=5432
         POSTGRES_USER=postgres
@@ -363,12 +355,6 @@ The workflows require a couple of secrets to work:
         AWS_SECRET=<YOUR-AWS-SECRET>
         AWS_REGION=<YOUR-AWS-REGION>
 
-        HOST_IP=<AWS-EC2-STATIC-IP>
-        AWS_PRIVATE_KEY=<AWS-PRIVATE-KEY>
-        APP_DIR=/home/user/repo-template
-        USER_NAME=user
-        USER_PASSWORD=userpassword
-        SERVICE_NAME=gunicorn
       ```
 
 The workflows also require the followingenvironments to work:
