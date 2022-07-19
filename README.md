@@ -1,6 +1,6 @@
 # A Template For Deploying a flask app to EBS.
 
-> This flask application enables enables an admin to register then authorizes them to create new users.
+> This flask application enab enables an admin to register then authorizes them to create new users.
 
 <p align="center">
   <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/repo-template/actions/workflows/feature-development-workflow.yml/badge.svg" />
